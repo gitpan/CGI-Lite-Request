@@ -169,6 +169,11 @@ sub secure {
 
 Richard Hundt <richard NO SPAM AT protea-systems.com>
 
+=head1 ACKNOWLEDGEMENTS
+
+Dr. Lincoln Stein and anybody who contributed to L<CGI::Cookie>
+from which most of this code was stolen.
+
 =head1 SEE ALSO
 
 L<CGI::Lite>, L<CGI::Lite::Request>, L<CGI::Cookie>

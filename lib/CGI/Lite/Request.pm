@@ -9,7 +9,7 @@ use URI;
 
 use base qw(CGI::Lite);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 NAME
 
@@ -27,7 +27,7 @@ CGI::Lite::Request - Request object based on CGI::Lite
   @params = $req->params();                     # params in parse order
   $foo  = $req->args->{foo};                    # hash ref
   %args = $req->args;                           # hash
-  $uri = $req->uri;                             # $ENV{SCRIPT_NAME}/$ENV{PATH_INFO}
+  $uri = $req->uri;                             # URI
   $req->print(@out);                            # print to STDOUT
   $req->headers;                                # HTTP::Headers instance
   $req->send_http_header;                       # print the header
@@ -43,8 +43,9 @@ CGI::Lite::Request - Request object based on CGI::Lite
 =head1 DESCRIPTION
 
 This module extends L<CGI::Lite> to provide an interface which is compatible with the most commonly used
-methods of L<Apache::Request> as a fat free alternative to L<CGI>. All methods of L<CGI::Lite> are inherited
-as is, and the following are defined herein:
+methods of L<Apache::Request> as a fat free alternative to L<CGI>.
+
+All methods of L<CGI::Lite> are inherited as is, and the following are defined herein:
 
 =head1 METHODS
 
@@ -80,21 +81,10 @@ sub new {
         $self->set_platform('Unix');
     }
 
-    $_instances{$$} = $self;
-
     bless $self, $class;
     $self->parse(); # FIXME - error checking here
 
-    $self->{_headers} = HTTP::Headers->new(
-        Status            => '200 OK',
-        Content_Type      => 'text/html',
-        Pragma            => 'no-cache',
-        Cache_Control     => 'no-cache',
-        Connection        => 'close',
-    );
- 
-    $self->{_cookies} = CGI::Lite::Cookie->fetch;
-
+    $_instances{$$} = $self;
     return $self;
 }
 
@@ -111,13 +101,13 @@ sub content_length   { shift->headers->content_length(@_)   }
 sub content_type     { shift->headers->content_type(@_)     }
 sub header           { shift->headers->header(@_)           }
 
-sub method     { $ENV{REQUEST_METHOD} }
-sub referer    { $ENV{HTTP_REFERER    }
-sub address    { $ENV{REMOTE_ADDR}    }
-sub hostname   { $ENV{REMOTE_HOST}    }
-sub protocol   { $ENV{SERVER_PROTOCOL}}
-sub user       { $ENV{REMOTE_USER}    }
-sub user_agent { $ENV{HTTP_USER_AGENT }
+sub method     { $ENV{REQUEST_METHOD}  }
+sub referer    { $ENV{HTTP_REFERER}    }
+sub address    { $ENV{REMOTE_ADDR}     }
+sub hostname   { $ENV{REMOTE_HOST}     }
+sub protocol   { $ENV{SERVER_PROTOCOL} }
+sub user       { $ENV{REMOTE_USER}     }
+sub user_agent { $ENV{HTTP_USER_AGENT} }
 
 =item parse
 
@@ -128,6 +118,7 @@ constructor, so you shouldn't need to call this expicitly.
 
 sub parse {
     my $self = shift;
+
     undef($self->{$_}) for qw[
         _base
         _secure
@@ -136,6 +127,16 @@ sub parse {
         _path_info
     ];
     $self->{_uploads} = { };
+
+    $self->{_headers} = HTTP::Headers->new(
+        Status            => '200 OK',
+        Content_Type      => 'text/html',
+        Pragma            => 'no-cache',
+        Cache_Control     => 'no-cache',
+        Connection        => 'close',
+    );
+
+    $self->{_cookies} = CGI::Lite::Cookie->fetch;
     $self->set_file_type('handle');
     $self->parse_new_form_data(@_);
 }
@@ -167,9 +168,9 @@ sub param {
     my $self = shift;
     my $key  = shift;
     if (wantarray and ref $self->args->{$key} eq 'ARRAY') {
-        return @{$self->args->{$key}};
+        return @{$self->{web_data}->{$key}};
     } else {
-        return $self->args->{$key};
+        return $self->{web_data}->{$key};
     }
 }
 
@@ -346,8 +347,8 @@ with which it was associated when uploaded.
 =cut
 
 sub upload {
-    my ($self, $filename) = @_;
-    return $self->uploads->{$filename};
+    my ($self, $fieldname) = @_;
+    return $self->uploads->{ $self->param($fieldname) };
 }
 
 =item uploads
@@ -382,9 +383,18 @@ sub _create_handles {
 
 Richard Hundt <richard NO SPAM AT protea-systems.com>
 
+=head1 ACKNOWLEDGEMENTS
+
+Special thanks to everyone who's involved with L<Catalyst> from which much of this code was
+shamelessly stolen.
+
+Apologies also to Sebastian Riedel and anyone who has worked
+on L<Catalyst::Request> and L<Catalyst::Request::Upload> for my failing to
+give credit where it was due in previous releases.
+
 =head1 SEE ALSO
 
-L<CGI::Lite>, L<CGI::Lite::Cookie>, L<CGI::Lite::Upload>
+L<CGI::Lite>, L<CGI::Lite::Cookie>, L<CGI::Lite::Upload>, L<Catalyst>
 
 =head1 LICENCE
 

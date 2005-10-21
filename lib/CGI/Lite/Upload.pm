@@ -84,7 +84,7 @@ sub copy_to {
 
 =item fh
 
-returns an L<IO::File> object with the temporary file openend read only 
+returns an L<IO::File> object with the temporary file opened read only 
 
 =cut
 
@@ -108,7 +108,7 @@ links the temporary file to the destination
 =cut
 
 sub link_to {
-    my ( $self, $target ) = @_;
+    my ($self, $target) = @_;
     return CORE::link( $self->tempname, $target );
 }
 
@@ -119,21 +119,12 @@ reads and returns the contents of the uploaded file
 =cut
 
 sub slurp {
-    my ( $self, $layer ) = @_;
-
-    unless ( $layer ) {
-        $layer = ':raw';
-    }
-
-    my $content = undef;
+    my ($self) = @_;
+    my $content;
     my $handle  = $self->fh;
-
-    binmode( $handle, $layer );
-
-    while ( $handle->sysread( my $buffer, 8192 ) ) {
-        $content .= $buffer;
-    }
-
+    binmode($handle);
+    local $/ = undef;
+    $content = <$handle>;
     return $content;
 }
 
@@ -142,6 +133,15 @@ sub slurp {
 =head1 AUTHOR
 
 Richard Hundt <richard NO SPAM AT protea-systems.com>
+
+=head1 ACKNOWLEDGEMENTS
+
+Special thanks to everyone who's involved with L<Catalyst> from which much of this code was
+shamelessly stolen.
+
+Apologies also to Sebastian Riedel and anyone who has worked
+on L<Catalyst::Request> and L<Catalyst::Request::Upload> for my failing to
+give credit where it was due in previous releases.
 
 =head1 SEE ALSO
 

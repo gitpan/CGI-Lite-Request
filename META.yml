@@ -1,5 +1,5 @@
 name: CGI-Lite-Request
-version: 0.01
+version: 0.02
 abstract: Request class for CGI::Lite
 author: Richard Hundt <richard NO SPAM AT protea-systems.com>
 license: artistic
