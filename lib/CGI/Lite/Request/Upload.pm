@@ -1,4 +1,4 @@
-package CGI::Lite::Upload;
+package CGI::Lite::Request::Upload;
 
 use strict;
 
@@ -9,11 +9,11 @@ use IO::File   ();
 
 =head1 NAME
 
-CGI::Lite::Upload - Upload objects for CGI::Lite
+CGI::Lite::Request::Upload - Upload objects for CGI::Lite
 
 =head1 SYNOPSIS
 
-  $upload = CGI::Lite::Upload->new;
+  $upload = CGI::Lite::Request::Upload->new;
   
   # getters
   $upload->filename;

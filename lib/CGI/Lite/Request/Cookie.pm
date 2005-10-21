@@ -1,4 +1,4 @@
-package CGI::Lite::Cookie;
+package CGI::Lite::Request::Cookie;
 
 use CGI::Lite qw(url_encode url_decode);
 
