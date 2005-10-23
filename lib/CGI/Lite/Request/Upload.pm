@@ -5,7 +5,7 @@ use strict;
 use Carp qw(croak carp);
 
 use File::Copy ();
-use IO::File   ();
+use IO::File ();
 
 =head1 NAME
 
@@ -88,9 +88,10 @@ returns an L<IO::File> object with the temporary file opened read only
 
 =cut
 
+#==================================================================
+# START OF CODE BORROWED FROM Catalyst::Request::Upload
 sub fh {
     my $self = shift;
-
     my $fh = IO::File->new( $self->tempname, IO::File::O_RDONLY );
     
     unless ( defined $fh ) {
@@ -100,6 +101,8 @@ sub fh {
 
     return $fh;
 }
+# END OF BORROWED CODE
+#==================================================================
 
 =item link_to('/path/to/destination')
 
@@ -109,7 +112,7 @@ links the temporary file to the destination
 
 sub link_to {
     my ($self, $target) = @_;
-    return CORE::link( $self->tempname, $target );
+    return CORE::link($self->tempname, $target);
 }
 
 =item slurp
@@ -120,11 +123,14 @@ reads and returns the contents of the uploaded file
 
 sub slurp {
     my ($self) = @_;
+
     my $content;
     my $handle  = $self->fh;
+
     binmode($handle);
     local $/ = undef;
     $content = <$handle>;
+
     return $content;
 }
 
@@ -133,15 +139,6 @@ sub slurp {
 =head1 AUTHOR
 
 Richard Hundt <richard NO SPAM AT protea-systems.com>
-
-=head1 ACKNOWLEDGEMENTS
-
-Special thanks to everyone who's involved with L<Catalyst> from which much of this code was
-shamelessly stolen.
-
-Apologies also to Sebastian Riedel and anyone who has worked
-on L<Catalyst::Request> and L<Catalyst::Request::Upload> for my failing to
-give credit where it was due in previous releases.
 
 =head1 SEE ALSO
 

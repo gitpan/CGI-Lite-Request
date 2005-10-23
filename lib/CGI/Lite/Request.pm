@@ -1,6 +1,6 @@
 package CGI::Lite::Request;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 BEGIN {
     our $MODE = 'Base';
@@ -38,7 +38,6 @@ CGI::Lite::Request - Request object based on CGI::Lite
   $req->print(@out);                            # print to STDOUT
   $req->headers;                                # HTTP::Headers instance
   $req->send_http_header;                       # print the header
-  $req->send_cgi_header(@fields};               # prints a raw header
   $req->content_type('text/html');              # set
   $req->content_type;                           # get
   $path = $req->path_info;                      # $ENV{PATH_INFO}
@@ -166,16 +165,12 @@ Richard Hundt <richard NO SPAM AT protea-systems.com>
 
 =head1 ACKNOWLEDGEMENTS
 
-Special thanks to everyone who's involved with L<Catalyst> from which much of this code was
-shamelessly stolen.
-
-Apologies also to Sebastian Riedel and anyone who has worked
-on L<Catalyst::Request> and L<Catalyst::Request::Upload> for my failing to
-give credit where it was due in previous releases.
+Thanks to Sebastian Riedel for the code shamelessly stolen
+from L<Catalyst::Request> and L<Catalyst::Request::Upload>
 
 =head1 SEE ALSO
 
-L<CGI::Lite>, L<CGI::Lite::Cookie>, L<CGI::Lite::Upload>, L<Catalyst>
+L<CGI::Lite>, L<CGI::Lite::Cookie>, L<CGI::Lite::Upload>
 
 =head1 LICENCE
 

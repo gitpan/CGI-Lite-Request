@@ -51,7 +51,7 @@ sub user_agent { $ENV{HTTP_USER_AGENT} }
 sub parse {
     my $self = shift;
 
-    undef($self->{$_}) for qw[
+    undef( $self->{$_} ) for qw[
         _base
         _secure
         _headers
@@ -61,16 +61,34 @@ sub parse {
     $self->{_uploads} = { };
 
     $self->{_headers} = HTTP::Headers->new(
-        Status            => '200 OK',
-        Content_Type      => 'text/html',
-        Pragma            => 'no-cache',
-        Cache_Control     => 'no-cache',
-        Connection        => 'close',
+        Status        => '200 OK',
+        Content_Type  => 'text/html',
+        Pragma        => 'no-cache',
+        Cache_Control => 'no-cache',
+        Connection    => 'close',
     );
 
     $self->{_cookies} = CGI::Lite::Request::Cookie->fetch;
     $self->set_file_type('handle');
     $self->parse_new_form_data(@_);
+}
+
+sub parse_form_data {
+    my ($self, $user_request) = @_;
+    my $request_method = $user_request || $ENV{REQUEST_METHOD} || '';
+    my $content_type   = $ENV{CONTENT_TYPE};
+
+    if ($request_method =~ /post/i and $content_type eq 'text/xml') {
+        read (STDIN, $xml_post_data, $ENV{CONTENT_LENGTH});
+
+        $self->{web_data}->{POSTDATA} = $xml_post_data;
+
+        return wantarray ? %{ $self->{web_data} }
+                         :    $self->{web_data} ;
+    }
+    else {
+        $self->SUPER::parse_form_data($user_request);
+    }
 }
 
 sub args {
@@ -83,7 +101,8 @@ sub param {
     my $key  = shift;
     if (wantarray and ref $self->args->{$key} eq 'ARRAY') {
         return @{$self->{web_data}->{$key}};
-    } else {
+    }
+    else {
         return $self->{web_data}->{$key};
     }
 }
@@ -101,17 +120,20 @@ sub uri {
 sub secure {
     my $self = shift;
     unless (defined $self->{_secure}) {
-        if ( $ENV{HTTPS} && uc( $ENV{HTTPS} ) eq 'ON' ) {
+        if ($ENV{HTTPS} && uc($ENV{HTTPS}) eq 'ON') {
             $self->{_secure}++;
         }
 
-        if ( $ENV{SERVER_PORT} == 443 ) {
+        if ($ENV{SERVER_PORT} == 443) {
             $self->{_secure}++;
         }
     }
     $self->{_secure};
 }
 
+
+#===========================================================
+# START OF CODE BORROWED FROM Catalyst::Request
 sub base {
     my $self = shift;
     unless ($self->{_base}) {
@@ -149,9 +171,12 @@ sub path_info {
     $self->{_path_info};
 }
 
+# END OF BORROWED CODE
+#===========================================================
+
 sub print {
     my $self = shift;
-    CORE::print(@_);
+    CORE::print( @_);
 }
 
 sub send_http_header {
@@ -163,8 +188,7 @@ sub send_http_header {
         $self->content_type('text/html');
     }
     $self->headers->header(
-        Set_Cookie => join(
-            "\n", map {
+        Set_Cookie => join( "\n", map {
                 $_->as_string
             } values %{$self->cookies}
         )
@@ -198,10 +222,12 @@ sub _create_handles {
     my ($upload, $name, $path);
     while (($name, $path) = each %$files) {
         $upload = CGI::Lite::Request::Upload->new;
+
         $upload->tempname($path);
         $upload->filename($name);
         $upload->type($ft->mime_type($path));
         $upload->size(-s $path);
+
         $self->{_uploads}->{$name} = $upload;
     }
 }

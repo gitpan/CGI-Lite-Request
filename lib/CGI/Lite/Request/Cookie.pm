@@ -4,7 +4,7 @@ use CGI::Lite qw(url_encode url_decode);
 
 =head1 NAME
 
-CGI::Lite::Cookie - Cookie objects for CGI::Lite::Request
+CGI::Lite::Request::Cookie - Cookie objects for CGI::Lite::Request
 
 =head1 SYNOPSIS
 
