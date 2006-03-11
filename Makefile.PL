@@ -7,8 +7,7 @@ license('artistic');
 version_from('lib/CGI/Lite/Request.pm');
 build_requires('Test::More');
 
-requires(qw(
-    perl 5.6.1
+requires($_) for (qw(
     File::Spec
     File::Type
     File::Copy

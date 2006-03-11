@@ -1,13 +1,13 @@
 package CGI::Lite::Request;
 
-our $VERSION = '0.04';
+our $VERSION = '0.06';
 
 BEGIN {
     our $MODE = 'Base';
     if (exists $ENV{MOD_PERL} or "$ENV{GATEWAY_INTERFACE}" =~ /^CGI-Perl\//) {
         $MODE = 'Apache';
     }
-    eval "use CGI\::Lite\::Request\::$MODE";
+    eval "require CGI\::Lite\::Request\::$MODE";
     unshift @{__PACKAGE__.'::ISA'}, "CGI\::Lite\::Request\::$MODE";
 }
 

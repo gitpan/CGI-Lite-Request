@@ -40,23 +40,26 @@ sub content_length   { shift->headers->content_length(@_)   }
 sub content_type     { shift->headers->content_type(@_)     }
 sub header           { shift->headers->header(@_)           }
 
-sub method     { $ENV{REQUEST_METHOD}  }
-sub referer    { $ENV{HTTP_REFERER}    }
-sub address    { $ENV{REMOTE_ADDR}     }
-sub hostname   { $ENV{REMOTE_HOST}     }
-sub protocol   { $ENV{SERVER_PROTOCOL} }
-sub user       { $ENV{REMOTE_USER}     }
-sub user_agent { $ENV{HTTP_USER_AGENT} }
+sub method       { $ENV{REQUEST_METHOD}  }
+sub referer      { $ENV{HTTP_REFERER}    }
+sub address      { $ENV{REMOTE_ADDR}     }
+sub hostname     { $ENV{REMOTE_HOST}     }
+sub protocol     { $ENV{SERVER_PROTOCOL} }
+sub user         { $ENV{REMOTE_USER}     }
+sub user_agent   { $ENV{HTTP_USER_AGENT} }
+sub query_string { $ENV{QUERY_STRING}    }
 
 sub parse {
     my $self = shift;
 
     undef( $self->{$_} ) for qw[
+        _args
         _base
         _secure
         _headers
         _cookies
         _path_info
+        _header_sent
     ];
     $self->{_uploads} = { };
 
@@ -78,7 +81,7 @@ sub parse_form_data {
     my $request_method = $user_request || $ENV{REQUEST_METHOD} || '';
     my $content_type   = $ENV{CONTENT_TYPE};
 
-    if ($request_method =~ /post/i and $content_type eq 'text/xml') {
+    if ($request_method =~ /post/i and $content_type =~ /xml/) {
         read (STDIN, $xml_post_data, $ENV{CONTENT_LENGTH});
 
         $self->{web_data}->{POSTDATA} = $xml_post_data;
@@ -91,18 +94,24 @@ sub parse_form_data {
     }
 }
 
+# FIXME - this should be getting the query params only
 sub args {
     my $self = shift;
-    wantarray ? %{$self->{web_data}} : $self->{web_data};
+    unless (defined $self->{_args}) {
+        $self->{_args} = $self->extract_params($self->query_string);
+    }
+    return wantarray ? %{$self->{_args}} : $self->{_args};
 }
 
 sub param {
     my $self = shift;
     my $key  = shift;
+
+    $self->{web_data}->{$key} = shift if @_;
+
     if (wantarray and ref $self->args->{$key} eq 'ARRAY') {
         return @{$self->{web_data}->{$key}};
-    }
-    else {
+    } else {
         return $self->{web_data}->{$key};
     }
 }
@@ -131,6 +140,7 @@ sub secure {
     $self->{_secure};
 }
 
+sub script_name { $ENV{SCRIPT_NAME} || '/' }
 
 #===========================================================
 # START OF CODE BORROWED FROM Catalyst::Request
@@ -141,7 +151,7 @@ sub base {
         my $scheme = $self->secure ? 'https' : 'http';
         my $host   = $ENV{HTTP_HOST}   || $ENV{SERVER_NAME};
         my $port   = $ENV{SERVER_PORT} || 80;
-        my $path   = $ENV{SCRIPT_NAME} || '/';
+        my $path   = $self->script_name;
 
         unless ( $path =~ /\/$/ ) {
             $path .= '/';
@@ -187,15 +197,18 @@ sub send_http_header {
     unless ($self->content_type) {
         $self->content_type('text/html');
     }
-    $self->headers->header(
-        Set_Cookie => join( "\n", map {
-                $_->as_string
-            } values %{$self->cookies}
-        )
-    );
+
+    if ($self->cookies) {
+        $self->headers->push_header(
+            Set_Cookie => $_->as_string
+        ) foreach values %{$self->cookies};
+    }
 
     $self->print($self->headers->as_string, "\015\012" x 2);
+    $self->{_header_sent}++;
 }
+
+sub header_sent { $_[0]->{_header_sent} }
 
 sub cookie {
     my ($self, $name) = @_;
@@ -208,6 +221,21 @@ sub cookie {
 
 sub cookies { $_[0]->{_cookies} }
 
+sub redirect {
+    my ($self, $location) = @_;
+    my $cookies;
+    $cookies += $_->as_string foreach values %{$self->cookies};
+    $self->print(<<"EOF");
+Status: 302 Moved
+Location: $location
+Content-type: text/html
+Set-Cookie: $cookies
+\015\012
+EOF
+
+    $self->{_header_sent}++;
+}
+
 sub upload {
     my ($self, $fieldname) = @_;
     return $self->uploads->{ $self->param($fieldname) };
@@ -217,7 +245,6 @@ sub uploads { $_[0]->{_uploads} }
 
 sub _create_handles {
     my ($self, $files) = @_;
-
     my $ft = File::Type->new;
     my ($upload, $name, $path);
     while (($name, $path) = each %$files) {
@@ -230,6 +257,22 @@ sub _create_handles {
 
         $self->{_uploads}->{$name} = $upload;
     }
+}
+
+sub extract_params {
+    my ($self, $string) = @_;
+    my @k_v_pairs = split /&/, $string;
+    my (%params, $k, $v);
+    foreach (@k_v_pairs) {
+        ($k, $v) = map { url_decode($_ || '') } split /=/, $_, 2;
+        if (defined $params{$k}) {
+            $params{$k} = [$params{$k}] unless ref $params{$k};
+            push @{$params{$k}}, $v;
+        } else {
+            $params{$k} = $v;
+        }
+    }
+    return \%params;
 }
 
 1;

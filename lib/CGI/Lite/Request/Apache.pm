@@ -1,5 +1,8 @@
 package CGI::Lite::Request::Apache;
 
+use strict;
+use warnings;
+
 use base qw(CGI::Lite::Request::Base);
 
 BEGIN {
@@ -35,29 +38,46 @@ sub content_type { shift->apache->content_type(@_) }
 
 sub send_http_header {
     my $self = shift;
+    my $content_type = shift;
+    $content_type ||= 'text/html';
 
-    if (my $content_type = shift) {
-        $self->content_type($content_type);
+    if ($self->cookies) {
+        $self->headers->push_header(
+            Set_Cookie => $_->as_string
+        ) foreach values %{$self->cookies};
     }
-    unless ($self->content_type) {
-        $self->content_type('text/html');
-    }
-    $self->headers->header(
-        Set_Cookie => join(
-            "\n", map {
-                $_->as_string
-            } values %{$self->cookies}
-        )
-    );
 
     $self->headers->scan(sub {
-        $self->apache->headers_out->set(@_);
+        $self->apache->headers_out->add(@_);
     });
 
+    $self->content_type($content_type);
+    if ($mod_perl::VERSION < 1.99) {
+        $self->apache->send_http_header();
+    }
     $self->{_header_sent}++;
 }
 
 sub header_sent { $_[0]->{_header_sent} }
+
+
+sub redirect {
+    my ($self, $location) = @_;
+
+    my $cookies;
+    $cookies += $_->as_string foreach values %{$self->cookies};
+
+    $self->apache->send_cgi_header(<<"EOT");
+Status: 302 Moved
+Location: $location
+Content-type: text/html
+Set-Cookie: $cookies
+\015\012
+EOT
+
+    $self->{_header_sent}++;
+
+}
 
 1;
 
